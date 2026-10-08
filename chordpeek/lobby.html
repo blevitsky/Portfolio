@@ -376,16 +376,28 @@ SONGS.forEach((song, i) => {
   art.position.z = 0.046;
   group.add(art);
 
-  const applyTexture = (url, isRetry) => {
+  /* YouTube silently serves a tiny 120×90 grey placeholder — still a
+     valid 200 OK image, so the loader's error callback never fires — for
+     any video that was never uploaded with an HD thumbnail. That's what
+     left "Don't Go Away" blank: maxresdefault "succeeded" with a
+     placeholder instead of actually failing. Catching it by its known
+     fixed size and falling through to hqdefault (which YouTube generates
+     for every video) is the standard fix. */
+  const applyTexture = (url, step) => {
     loader.load(url, (tex) => {
+      const img = tex.image;
+      if (step === 0 && img && img.width === 120 && img.height === 90){
+        applyTexture(thumbFallback(song.youtubeId), 1);
+        return;
+      }
       tex.colorSpace = THREE.SRGBColorSpace;
       applyCoverCrop(tex);
       artMat.map = tex; artMat.color.set(0xffffff); artMat.needsUpdate = true;
     }, undefined, () => {
-      if (!isRetry) applyTexture(thumbFallback(song.youtubeId), true);
+      if (step === 0) applyTexture(thumbFallback(song.youtubeId), 1);
     });
   };
-  applyTexture(thumb(song.youtubeId), false);
+  applyTexture(thumb(song.youtubeId), 0);
 
   /* plaque — the single place a song's title/artist appears on the
      frame; matches the site's own type (Space Grotesk/Inter), not a
@@ -572,7 +584,7 @@ function renderDropdown(items){
   } else {
     dropdownEl.innerHTML = items.map(s => `
       <div class="lb-dd-item" data-title="${s.title}">
-        <img class="lb-dd-thumb" src="${thumb(s.youtubeId)}" alt="" onerror="this.onerror=null;this.src='${thumbFallback(s.youtubeId)}'">
+        <img class="lb-dd-thumb" src="${thumb(s.youtubeId)}" alt="" onerror="this.onerror=null;this.src='${thumbFallback(s.youtubeId)}'" onload="if(this.naturalWidth===120&&this.naturalHeight===90){this.onload=null;this.src='${thumbFallback(s.youtubeId)}';}">
         <div><div class="lb-dd-title">${s.title}</div><div class="lb-dd-artist">${s.artist}</div></div>
       </div>`).join('');
     dropdownEl.querySelectorAll('.lb-dd-item').forEach(el => {
