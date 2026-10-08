@@ -264,8 +264,12 @@ const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 10
 /* ───────────────────────────────────────────────────────────
    The screen — a real YouTube iframe, CSS3D-projected
 ─────────────────────────────────────────────────────────── */
-const SCREEN_W = 5.4, SCREEN_H = SCREEN_W * 9 / 16;
-const SCREEN_Y = 2.15, SCREEN_Z = -6.2;
+/* Screen size is a balance: big enough that it dominates the view with no
+   blank space around it, but not so tall that keeping its bottom edge
+   above the floor forces the seat to look sharply upward — that upward
+   pitch is what keystones a flat screen into a trapezoid. */
+const SCREEN_W = 7.6, SCREEN_H = SCREEN_W * 9 / 16;
+const SCREEN_Y = 2.5, SCREEN_Z = -9.2;
 
 const iframeEl = document.createElement('iframe');
 iframeEl.style.width = '1280px';
@@ -305,8 +309,8 @@ frameBar(fm, SCREEN_H + fm * 2, -SCREEN_W / 2 - fm / 2, SCREEN_Y);
 frameBar(fm, SCREEN_H + fm * 2, SCREEN_W / 2 + fm / 2, SCREEN_Y);
 
 /* screen glow washing onto the room */
-const screenGlow = new THREE.PointLight(accent3D, 6, 16, 1.6);
-screenGlow.position.set(0, SCREEN_Y, SCREEN_Z + 1.4);
+const screenGlow = new THREE.PointLight(accent3D, 9, 22, 1.6);
+screenGlow.position.set(0, SCREEN_Y, SCREEN_Z + 1.8);
 glScene.add(screenGlow);
 
 /* ───────────────────────────────────────────────────────────
@@ -334,7 +338,7 @@ glScene.add(rightWall);
 
 const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20, 30), wallMat);
 ceiling.rotation.x = Math.PI / 2;
-ceiling.position.set(0, 7.6, 0);
+ceiling.position.set(0, 8.4, 0);
 glScene.add(ceiling);
 
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 30), floorMat);
@@ -362,7 +366,7 @@ function seat(x, z, lift){
   [pad, back, armL, armR, pipe].forEach(m => { m.castShadow = true; g.add(m); });
   glScene.add(g);
 }
-const ROW_Z = [3.4, 1.4, -0.6];
+const ROW_Z = [1.5, -0.5, -2.5];
 const ROW_LIFT = [0.22, 0.1, 0];
 const SEATS_PER_ROW = 7;
 const SEAT_SPACING = 0.86;
@@ -389,13 +393,74 @@ for (let i = 0; i < 5; i++){
 }
 
 /* ───────────────────────────────────────────────────────────
+   Popcorn — sitting in your lap, like it would be in a real
+   seat. Attached to the camera (not the world) so it stays put
+   in the corner of view through the entrance walk and the idle
+   seated sway, the same way your own hands would.
+─────────────────────────────────────────────────────────── */
+function buildPopcorn(){
+  const g = new THREE.Group();
+
+  const stripeCanvas = document.createElement('canvas');
+  stripeCanvas.width = 64; stripeCanvas.height = 64;
+  const sctx = stripeCanvas.getContext('2d');
+  sctx.fillStyle = '#F7F3E8'; sctx.fillRect(0, 0, 64, 64);
+  sctx.fillStyle = '#D6433C';
+  for (let i = 0; i < 8; i += 2) sctx.fillRect(i * 8, 0, 8, 64);
+  const stripeTex = new THREE.CanvasTexture(stripeCanvas);
+  stripeTex.wrapS = THREE.RepeatWrapping; stripeTex.repeat.set(3, 1);
+
+  /* Basic (unlit) materials on purpose: the theater's ambient light is
+     almost black by design, and this prop sits right at the camera's
+     face, far from the screen-glow and aisle lights that light everything
+     else — under normal lighting it would just render pitch black against
+     a pitch-black backdrop. It should read as "a thing in your hand",
+     always at full color, not as part of the lit theater set. */
+  const bucket = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.13, 0.26, 16, 1, true),
+    new THREE.MeshBasicMaterial({ map: stripeTex, side: THREE.DoubleSide })
+  );
+  g.add(bucket);
+
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.2, 0.012, 8, 20),
+    new THREE.MeshBasicMaterial({ color: 0xF7F3E8 })
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.13;
+  g.add(rim);
+
+  const kernelMat = new THREE.MeshBasicMaterial({ color: 0xF3E3A8 });
+  for (let i = 0; i < 16; i++){
+    const k = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04 + Math.random() * 0.018, 0), kernelMat);
+    const ang = Math.random() * Math.PI * 2, rad = Math.random() * 0.15;
+    k.position.set(Math.cos(ang) * rad, 0.14 + Math.random() * 0.09, Math.sin(ang) * rad);
+    k.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+    g.add(k);
+  }
+
+  g.scale.setScalar(1.35);
+  return g;
+}
+const popcorn = buildPopcorn();
+popcorn.position.set(0.44, -0.34, -0.9);
+popcorn.rotation.set(-0.08, 0.3, -0.12);
+camera.add(popcorn);
+/* the camera itself is never drawn — only traversing it as part of
+   the scene graph lets its attached children (the popcorn) render */
+glScene.add(camera);
+
+/* ───────────────────────────────────────────────────────────
    Camera entrance — start standing at the back of the theater,
    walk/dolly down to a seat, already facing a screen that's
    already playing.
 ─────────────────────────────────────────────────────────── */
 const START_POS = new THREE.Vector3(0, 2.5, 9.5);
 const START_LOOK = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
-const SEAT_POS = new THREE.Vector3(0, 1.18, 2.3);
+/* Seat eye-height sits a realistic distance below the screen's vertical
+   center — enough to look slightly up at it like a real theater seat,
+   not so much that the pitch keystones the flat screen into a trapezoid. */
+const SEAT_POS = new THREE.Vector3(0, 1.5, 0.4);
 const SEAT_LOOK = new THREE.Vector3(0, SCREEN_Y - 0.1, SCREEN_Z);
 
 camera.position.copy(START_POS);

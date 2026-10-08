@@ -47,18 +47,19 @@
   .lb-search-wrap{pointer-events:auto;position:relative;width:min(560px,86vw)}
   .lb-search{
     display:flex;align-items:center;gap:10px;background:var(--card);backdrop-filter:blur(18px);
-    border:1px solid var(--line);border-radius:99px;padding:13px 10px 13px 20px;box-shadow:0 24px 48px -20px rgba(27,26,24,.22);
+    border:1px solid var(--line);border-radius:99px;padding:8px 8px 8px 22px;box-shadow:0 24px 48px -20px rgba(27,26,24,.22);
   }
-  .lb-search svg{width:16px;height:16px;color:var(--ink40);flex-shrink:0}
   .lb-search input{
     flex:1;border:0;background:transparent;outline:0;font-family:var(--font-body);font-size:14.5px;color:var(--ink);
   }
   .lb-search input::placeholder{color:var(--ink40)}
   .lb-search-go{
-    border:0;background:var(--ink);color:#fff;font-family:var(--font-body);font-weight:600;font-size:12.5px;
-    padding:9px 18px;border-radius:99px;cursor:pointer;transition:opacity .15s;flex-shrink:0;
+    display:flex;align-items:center;gap:7px;border:0;background:var(--ink);color:#fff;font-family:var(--font-body);
+    font-weight:600;font-size:12.5px;padding:11px 18px 11px 14px;border-radius:99px;cursor:pointer;
+    transition:opacity .15s;flex-shrink:0;
   }
   .lb-search-go:hover{opacity:.85}
+  .lb-search-go svg{width:15px;height:15px;flex-shrink:0}
 
   .lb-dropdown{
     position:absolute;left:0;right:0;bottom:calc(100% + 10px);background:#fff;border:1px solid var(--line);
@@ -142,9 +143,11 @@
     <div class="lb-search-wrap">
       <div class="lb-dropdown" id="lbDropdown"></div>
       <div class="lb-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input id="lbSearch" type="text" placeholder="Search for a song…" autocomplete="off">
-        <button class="lb-search-go" id="lbGo" type="button">Step in</button>
+        <button class="lb-search-go" id="lbGo" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          Search
+        </button>
       </div>
     </div>
   </div>
