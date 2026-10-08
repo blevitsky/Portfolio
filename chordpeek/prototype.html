@@ -79,8 +79,8 @@
     position:relative;display:block;text-decoration:none;color:var(--ink);
     aspect-ratio:4/5;overflow:hidden;background:var(--bg2);
   }
-  .song-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.02);transition:transform .5s var(--ease),filter .4s}
-  .song-card:hover img{transform:scale(1.08);filter:brightness(.7)}
+  .song-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;transform:scale(1.18);transition:transform .5s var(--ease),filter .4s}
+  .song-card:hover img{transform:scale(1.26);filter:brightness(.7)}
   .song-card::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.35) 42%,transparent 65%)}
   .song-card-body{position:absolute;left:0;right:0;bottom:0;padding:16px;z-index:2}
   .song-card-year{font-size:10.5px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.55)}
@@ -136,7 +136,11 @@
 
 <script src="songs-data.js"></script>
 <script>
-function thumb(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
+function thumb(id){ return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`; }
+function thumbFallback(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
+/* maxresdefault doesn't exist for every upload (404s silently) — drop to
+   hqdefault on error so a card never shows a broken image. */
+function onThumbErr(img, id){ img.onerror = null; img.src = thumbFallback(id); }
 
 const searchEl = document.getElementById('cpSearch');
 const dropdownEl = document.getElementById('cpDropdown');
@@ -157,7 +161,7 @@ function renderGrid(){
   countEl.textContent = `${SONGS.length} songs`;
   gridEl.innerHTML = SONGS.map(s => `
     <a class="song-card" href="room.html?song=${encodeURIComponent(s.title)}">
-      <img src="${thumb(s.youtubeId)}" alt="" loading="lazy">
+      <img src="${thumb(s.youtubeId)}" alt="" loading="lazy" onerror="onThumbErr(this,'${s.youtubeId}')">
       <span class="song-card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
       <div class="song-card-body">
         <div class="song-card-year">${s.year} · ${s.genre}</div>
@@ -179,7 +183,7 @@ function openDropdown(items){
   } else {
     dropdownEl.innerHTML = items.map(s => `
       <div class="dd-item" role="option" data-title="${s.title}">
-        <img class="dd-thumb" src="${thumb(s.youtubeId)}" alt="">
+        <img class="dd-thumb" src="${thumb(s.youtubeId)}" alt="" onerror="onThumbErr(this,'${s.youtubeId}')">
         <div><div class="dd-title">${s.title}</div><div class="dd-artist">${s.artist}</div></div>
       </div>`).join('');
     dropdownEl.querySelectorAll('.dd-item').forEach(el => {
