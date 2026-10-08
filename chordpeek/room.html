@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChordPeek — song room</title>
+<title>Ben Levitsky — song room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -222,7 +222,7 @@ if (!song) {
   document.getElementById('rmErr').innerHTML = `<div>Couldn't find that song.</div><a href="lobby.html">Back to the gallery</a>`;
   throw new Error('no song');
 }
-document.title = `${song.title} — ChordPeek theater`;
+document.title = `${song.title} — theater`;
 
 const hue = song.mood.hue;
 const accentCSS = `hsl(${hue} 72% 68%)`;

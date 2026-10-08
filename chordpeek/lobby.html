@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChordPeek — the gallery</title>
+<title>Ben Levitsky — the gallery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -24,8 +24,7 @@
   .lb-brand{pointer-events:auto;display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
   .lb-brand-icon{width:34px;height:34px;border-radius:9px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .lb-brand-icon svg{width:17px;height:17px;color:#fff}
-  .lb-brand-name{font-family:var(--font-display);font-weight:700;font-size:15.5px;line-height:1.1}
-  .lb-brand-by{font-size:10.5px;color:var(--ink40);font-weight:500}
+  .lb-brand-by{font-family:var(--font-display);font-weight:600;font-size:14px;color:var(--ink)}
 
   .lb-info{
     pointer-events:auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);
@@ -132,7 +131,7 @@
   <div class="lb-top">
     <a class="lb-brand" href="lobby.html">
       <span class="lb-brand-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
-      <span><span class="lb-brand-name" style="display:block">ChordPeek</span><span class="lb-brand-by">by Ben Levitsky</span></span>
+      <span class="lb-brand-by">Ben Levitsky</span>
     </a>
     <button class="lb-info" id="lbInfoBtn" type="button" aria-label="How this works">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></svg>
@@ -154,7 +153,7 @@
 </div>
 
 <div class="lb-tooltip" id="lbTooltip">
-  Drag to look around the gallery. Use the arrows to walk down the wall, or click a frame — or search — to step straight into a song's room.
+  Drag to look around the room. Use the arrows to walk the walls, or click a frame — or search — to step straight into a song's room.
 </div>
 
 <div class="lb-progress" id="lbProgress"></div>
@@ -234,20 +233,18 @@ scene.fog = new THREE.Fog(0xEFEDEA, 14, 34);
 
 const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
 const EYE_Y = 1.7;
-camera.position.set(0, EYE_Y, 7.4);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, EYE_Y, 0);
 controls.enablePan = false;
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 4.2;
+controls.minDistance = 3.4;
 controls.maxDistance = 10.5;
 controls.minPolarAngle = Math.PI / 2 - 0.35;
 controls.maxPolarAngle = Math.PI / 2 + 0.22;
-controls.minAzimuthAngle = -0.62;
-controls.maxAzimuthAngle = 0.62;
-controls.update();
+/* no azimuth clamp — with frames wrapped around all four walls now,
+   the viewer needs to be able to turn all the way around, not just
+   look left/right across one flat wall */
 
 /* ───────────────────────────────────────────────────────────
    Lighting — soft, even, museum-skylight feeling
@@ -265,50 +262,86 @@ fill.position.set(6, 4, 8);
 scene.add(fill);
 
 /* ───────────────────────────────────────────────────────────
-   Room shell — long back wall, floor, ceiling with a soft
-   skylight strip, short angled side returns for depth
+   Room shell — a real four-wall room instead of one long gallery
+   wall. Songs are split into four roughly-equal groups, one per
+   wall, walked in a continuous loop (back → right → front → left)
+   so stepping through with the arrows feels like actually walking
+   the room rather than jumping between unrelated surfaces.
 ─────────────────────────────────────────────────────────── */
 const SPACING = 4.1;
 const N = SONGS.length;
-const WALL_W = SPACING * N + 8;
+
+const WALL_ORDER = ['back', 'right', 'front', 'left'];
+const wallCounts = (() => {
+  const base = Math.floor(N / 4), rem = N % 4;
+  const counts = {};
+  WALL_ORDER.forEach((w, i) => { counts[w] = base + (i < rem ? 1 : 0); });
+  return counts;
+})();
+const PER_WALL_MAX = Math.max(...Object.values(wallCounts));
+const ROOM = PER_WALL_MAX * SPACING + 8;   // full wall length / room side
+const HALF = ROOM / 2;
+
+/* per-wall geometry: where the wall sits, which way it faces into the
+   room, and the Y-rotation that turns a frame built facing +Z (the
+   original single-wall orientation) to face that same way */
+const WALL_DEF = {
+  back:  { rotY: 0,              normal: new THREE.Vector3(0, 0, 1),  center: new THREE.Vector3(0, 0, -HALF) },
+  right: { rotY: -Math.PI / 2,   normal: new THREE.Vector3(-1, 0, 0), center: new THREE.Vector3(HALF, 0, 0) },
+  front: { rotY: Math.PI,        normal: new THREE.Vector3(0, 0, -1), center: new THREE.Vector3(0, 0, HALF) },
+  left:  { rotY: Math.PI / 2,    normal: new THREE.Vector3(1, 0, 0),  center: new THREE.Vector3(-HALF, 0, 0) },
+};
+/* the local "along the wall" axis for each wall, as a unit vector —
+   lets every wall share one "place frame i of n" formula */
+const WALL_AXIS = {
+  back: new THREE.Vector3(1, 0, 0), right: new THREE.Vector3(0, 0, 1),
+  front: new THREE.Vector3(-1, 0, 0), left: new THREE.Vector3(0, 0, -1),
+};
 
 const wallMat = new THREE.MeshStandardMaterial({ color: 0xF2F0EC, roughness: 0.92, metalness: 0 });
 const floorMat = new THREE.MeshStandardMaterial({ color: 0xDAD6CF, roughness: 0.85, metalness: 0 });
 const ceilMat = new THREE.MeshStandardMaterial({ color: 0xF7F6F3, roughness: 0.95, metalness: 0, emissive: 0xffffff, emissiveIntensity: 0.06 });
+const skirtMat = new THREE.MeshStandardMaterial({ color: 0xCFC9BF });
 
-const backWall = new THREE.Mesh(new THREE.PlaneGeometry(WALL_W, 7), wallMat);
-backWall.position.set(0, EYE_Y + 1.3, -1.4);
-backWall.receiveShadow = true;
-scene.add(backWall);
+WALL_ORDER.forEach(w => {
+  const def = WALL_DEF[w];
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM, 7), wallMat);
+  wall.position.set(def.center.x, EYE_Y + 1.3, def.center.z);
+  wall.rotation.y = def.rotY;
+  wall.receiveShadow = true;
+  scene.add(wall);
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(WALL_W, 20), floorMat);
+  /* baseboard, sitting just inside the wall along the floor */
+  const skirt = new THREE.Mesh(new THREE.PlaneGeometry(ROOM, 0.1), skirtMat);
+  skirt.position.set(def.center.x + def.normal.x * 0.01, 0.03, def.center.z + def.normal.z * 0.01);
+  skirt.rotation.y = def.rotY;
+  scene.add(skirt);
+});
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM, ROOM), floorMat);
 floor.rotation.x = -Math.PI / 2;
-floor.position.set(0, -0.02, 4);
+floor.position.set(0, -0.02, 0);
 floor.receiveShadow = true;
 scene.add(floor);
 
-const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_W, 20), ceilMat);
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM, ROOM), ceilMat);
 ceiling.rotation.x = Math.PI / 2;
-ceiling.position.set(0, 5.1, 4);
+ceiling.position.set(0, 5.1, 0);
 scene.add(ceiling);
 
-/* a soft warm skylight bar along the ceiling for the glow seen
+/* a soft warm skylight patch centered over the room for the glow seen
    in museum photography */
 const skylight = new THREE.Mesh(
-  new THREE.PlaneGeometry(WALL_W * 0.9, 1.4),
-  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })
+  new THREE.PlaneGeometry(ROOM * 0.55, ROOM * 0.55),
+  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 })
 );
 skylight.rotation.x = Math.PI / 2;
-skylight.position.set(0, 5.05, 1);
+skylight.position.set(0, 5.05, 0);
 scene.add(skylight);
 
-/* floor skirting line for a subtle baseboard */
-const skirt = new THREE.Mesh(new THREE.PlaneGeometry(WALL_W, 0.1), new THREE.MeshStandardMaterial({ color: 0xCFC9BF }));
-skirt.position.set(0, 0.03, -1.39);
-scene.add(skirt);
-
 /* ───────────────────────────────────────────────────────────
-   Frames — one per song, evenly spaced along the back wall
+   Frames — one per song, split across the four walls and evenly
+   spaced (and centered) along whichever wall they land on
 ─────────────────────────────────────────────────────────── */
 function thumb(id){ return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`; }
 function thumbFallback(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
@@ -344,13 +377,31 @@ function applyCoverCrop(tex){
    render in a fallback font and then never update */
 await document.fonts.ready.catch(() => {});
 
+/* walk the songs onto walls in order: fills 'back' first, then
+   'right', 'front', 'left' — the same order goToIndex steps through */
+let wallCursor = 0, idxOnWall = 0;
 SONGS.forEach((song, i) => {
-  const x = (i - (N - 1) / 2) * SPACING;
+  while (idxOnWall >= wallCounts[WALL_ORDER[wallCursor]]){ wallCursor++; idxOnWall = 0; }
+  const wallName = WALL_ORDER[wallCursor];
+  const def = WALL_DEF[wallName];
+  const count = wallCounts[wallName];
+  const u = (idxOnWall - (count - 1) / 2) * SPACING;   // centered position along the wall
+  const axis = WALL_AXIS[wallName];
+  const fx = def.center.x + axis.x * u;
+  const fz = def.center.z + axis.z * u;
+  idxOnWall++;
+
   const group = new THREE.Group();
-  group.position.set(x, EYE_Y + 1.25, -1.34);
-  group.userData.baseZ = group.position.z;
+  group.position.set(fx, EYE_Y + 1.25, fz);
+  group.rotation.y = def.rotY;
   group.userData.index = i;
   group.userData.song = song;
+  group.userData.wall = wallName;
+  /* precomputed viewing spot: standing a comfortable distance in
+     front of the frame, facing it straight on */
+  const VIEW_DIST = 7.2;
+  group.userData.viewPos = new THREE.Vector3(fx + def.normal.x * VIEW_DIST, EYE_Y, fz + def.normal.z * VIEW_DIST);
+  group.userData.viewTarget = new THREE.Vector3(fx, EYE_Y, fz);
 
   /* outer frame (thin dark border) */
   const borderMat = new THREE.MeshStandardMaterial({
@@ -441,10 +492,11 @@ SONGS.forEach((song, i) => {
   group.add(hit);
   hitMeshes.push(hit);
 
-  /* a small picture-light above each frame */
+  /* a small picture-light above each frame, offset in from the wall
+     along that wall's own inward direction */
   const spot = new THREE.SpotLight(0xfff3df, 0.9, 6, Math.PI / 7, 0.5, 1.4);
-  spot.position.set(x, EYE_Y + 2.55, -0.4);
-  spot.target.position.set(x, EYE_Y + 1.25, -1.3);
+  spot.position.set(fx + def.normal.x * 1.1, EYE_Y + 2.55, fz + def.normal.z * 1.1);
+  spot.target.position.set(fx, EYE_Y + 1.25, fz);
   spot.castShadow = false;
   scene.add(spot, spot.target);
 
@@ -453,57 +505,54 @@ SONGS.forEach((song, i) => {
 });
 
 /* ───────────────────────────────────────────────────────────
-   Step / zoom / recenter navigation
+   Step / zoom / recenter navigation — the room is a loop now (four
+   walls, no dead ends), so stepping past the last frame wraps around
+   to the first rather than stopping. Each step tweens the camera's
+   full position AND look target, since different frames face in
+   different directions, not just a different point along one wall.
 ─────────────────────────────────────────────────────────── */
-let currentIndex = Math.floor((N - 1) / 2);
+const START_INDEX = Math.floor((wallCounts.back - 1) / 2);
+let currentIndex = START_INDEX;
 let tween = null;
 
-function tweenTo(targetX, targetZ, duration){
+function tweenTo(targetPos, targetLook, duration){
   if (tween) cancelAnimationFrame(tween.raf);
-  const startX = controls.target.x, startCamX = camera.position.x;
-  const startZ = camera.position.z;
-  const dz = targetZ !== undefined ? targetZ - startZ : 0;
-  const dx = targetX - startX;
+  const startPos = camera.position.clone();
+  const startLook = controls.target.clone();
   const t0 = performance.now();
   tween = { raf: null };
   function step(now){
     const t = Math.min(1, (now - t0) / duration);
     const e = 1 - Math.pow(1 - t, 3);
-    controls.target.x = startX + dx * e;
-    camera.position.x = startCamX + dx * e;
-    if (targetZ !== undefined) camera.position.z = startZ + dz * e;
+    camera.position.lerpVectors(startPos, targetPos, e);
+    controls.target.lerpVectors(startLook, targetLook, e);
     controls.update();
     if (t < 1) tween.raf = requestAnimationFrame(step);
   }
   tween.raf = requestAnimationFrame(step);
 }
 
-function goToIndex(i){
-  currentIndex = Math.max(0, Math.min(N - 1, i));
-  tweenTo(frames[currentIndex].position.x, undefined, 650);
-  updateProgress(); updateStepButtons();
+function goToIndex(i, duration){
+  currentIndex = ((i % N) + N) % N;
+  const f = frames[currentIndex];
+  tweenTo(f.userData.viewPos, f.userData.viewTarget, duration === undefined ? 650 : duration);
+  updateProgress();
 }
 
 document.getElementById('lbPrev').addEventListener('click', () => goToIndex(currentIndex - 1));
 document.getElementById('lbNext').addEventListener('click', () => goToIndex(currentIndex + 1));
-document.getElementById('lbHome').addEventListener('click', () => {
-  currentIndex = Math.floor((N - 1) / 2);
-  tweenTo(0, 7.4, 650);
-  updateProgress(); updateStepButtons();
-});
+document.getElementById('lbHome').addEventListener('click', () => goToIndex(START_INDEX, 650));
 
-const INIT_Z = 7.4;
-document.getElementById('lbZoomIn').addEventListener('click', () => {
-  camera.position.z = Math.max(controls.minDistance, camera.position.z - 1.1);
-});
-document.getElementById('lbZoomOut').addEventListener('click', () => {
-  camera.position.z = Math.min(controls.maxDistance, camera.position.z + 1.1);
-});
-
-function updateStepButtons(){
-  document.getElementById('lbPrev').disabled = currentIndex <= 0;
-  document.getElementById('lbNext').disabled = currentIndex >= N - 1;
+function dolly(delta){
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
+  const dist = THREE.MathUtils.clamp(dir.length() + delta, controls.minDistance, controls.maxDistance);
+  dir.setLength(dist);
+  camera.position.copy(controls.target).add(dir);
+  controls.update();
 }
+document.getElementById('lbZoomIn').addEventListener('click', () => dolly(-1.1));
+document.getElementById('lbZoomOut').addEventListener('click', () => dolly(1.1));
+
 function updateProgress(){
   const el = document.getElementById('lbProgress');
   if (!el.children.length){
@@ -511,7 +560,13 @@ function updateProgress(){
   }
   [...el.children].forEach((d, i) => d.classList.toggle('active', i === currentIndex));
 }
-updateProgress(); updateStepButtons();
+
+/* start already looking at the opening frame — no entrance tween, this
+   is just where the "camera" is when the page is first ready */
+camera.position.copy(frames[currentIndex].userData.viewPos);
+controls.target.copy(frames[currentIndex].userData.viewTarget);
+controls.update();
+updateProgress();
 
 /* ───────────────────────────────────────────────────────────
    Hover + click on frames
