@@ -58,17 +58,6 @@
   .rm-hint.show{opacity:1}
   .rm-hint svg{width:13px;height:13px;flex-shrink:0}
 
-  .rm-eat{
-    pointer-events:auto;position:fixed;right:20px;bottom:18px;z-index:13;
-    display:flex;align-items:center;gap:8px;background:var(--card);backdrop-filter:blur(16px);
-    border:1px solid var(--line);border-radius:99px;padding:10px 18px 10px 14px;font-size:12.5px;font-weight:600;
-    color:var(--ink);cursor:pointer;opacity:0;transition:opacity .6s ease,border-color .15s,transform .15s;
-  }
-  .rm-eat.show{opacity:1}
-  .rm-eat:hover{border-color:var(--accent);transform:translateY(-1px)}
-  .rm-eat:active{transform:translateY(0) scale(.95)}
-  .rm-eat:disabled{opacity:.35;cursor:default}
-  .rm-eat-icon{font-size:15px;line-height:1}
 
   /* narrative crawl — centered low-third, game-intro-text style */
   .rm-narrative{
@@ -161,10 +150,6 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
   Drag to look around · click the screen for sound
 </div>
-
-<button class="rm-eat" id="rmEatBtn" type="button" aria-label="Eat some popcorn">
-  <span class="rm-eat-icon">🍿</span><span id="rmEatLabel">Eat popcorn</span>
-</button>
 
 <div class="rm-storytab" id="rmStoryTab">
   <span id="rmStoryTabLabel">The story</span>
@@ -492,69 +477,6 @@ for (let i = 0; i < 5; i++){
 }
 
 /* ───────────────────────────────────────────────────────────
-   Popcorn — a real object sitting on the armrest beside the seat, not a
-   flat sticker pinned to the camera. Living in world space like every
-   other prop in the room means it gets real depth and parallax as you
-   look around, and the kernels can be plucked off one at a time and
-   actually disappear from the bucket as you eat them.
-─────────────────────────────────────────────────────────── */
-function buildPopcorn(){
-  const g = new THREE.Group();
-  const kernels = [];
-
-  const stripeCanvas = document.createElement('canvas');
-  stripeCanvas.width = 64; stripeCanvas.height = 64;
-  const sctx = stripeCanvas.getContext('2d');
-  sctx.fillStyle = '#F7F3E8'; sctx.fillRect(0, 0, 64, 64);
-  sctx.fillStyle = '#D6433C';
-  for (let i = 0; i < 8; i += 2) sctx.fillRect(i * 8, 0, 8, 64);
-  const stripeTex = new THREE.CanvasTexture(stripeCanvas);
-  stripeTex.wrapS = THREE.RepeatWrapping; stripeTex.repeat.set(3, 1);
-
-  /* Basic (unlit) materials on purpose: the theater's ambient light is
-     almost black by design, and this prop sits right at the camera's
-     face, far from the screen-glow and aisle lights that light everything
-     else — under normal lighting it would just render pitch black against
-     a pitch-black backdrop. It should read as "a thing in your hand",
-     always at full color, not as part of the lit theater set. */
-  const bucket = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2, 0.13, 0.26, 16, 1, true),
-    new THREE.MeshBasicMaterial({ map: stripeTex, side: THREE.DoubleSide })
-  );
-  g.add(bucket);
-
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.2, 0.012, 8, 20),
-    new THREE.MeshBasicMaterial({ color: 0xF7F3E8 })
-  );
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 0.13;
-  g.add(rim);
-
-  const kernelMat = new THREE.MeshBasicMaterial({ color: 0xF3E3A8 });
-  for (let i = 0; i < 16; i++){
-    const k = new THREE.Mesh(new THREE.IcosahedronGeometry(0.04 + Math.random() * 0.018, 0), kernelMat);
-    const ang = Math.random() * Math.PI * 2, rad = Math.random() * 0.15;
-    k.position.set(Math.cos(ang) * rad, 0.14 + Math.random() * 0.09, Math.sin(ang) * rad);
-    k.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
-    g.add(k);
-    kernels.push(k);
-  }
-
-  g.scale.setScalar(1.35);
-  return { group: g, kernels };
-}
-const popcornBuild = buildPopcorn();
-const popcornGroup = popcornBuild.group;
-const popcornKernels = popcornBuild.kernels;
-/* resting on the armrest just to the right of the seat, close enough to
-   the camera to stay in frame, far enough to read as a real object the
-   eye can settle on rather than a HUD element glued to the lens */
-popcornGroup.position.set(0.48, 1.19, -0.8);
-popcornGroup.rotation.set(-0.06, 0.4, -0.1);
-glScene.add(popcornGroup);
-
-/* ───────────────────────────────────────────────────────────
    Camera entrance — start standing at the back of the theater,
    walk/dolly down to a seat, already facing a screen that's
    already playing.
@@ -587,7 +509,6 @@ function animateEntrance(now){
     document.getElementById('rmMarquee').classList.add('show');
     document.getElementById('rmHint').classList.add('show');
     document.getElementById('rmStoryTab').classList.add('show');
-    document.getElementById('rmEatBtn').classList.add('show');
     setTimeout(() => runNarrative(0), 1600);
   }
 }
@@ -626,58 +547,6 @@ const lookRight = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const yawQuat = new THREE.Quaternion();
 const pitchQuat = new THREE.Quaternion();
-
-/* ───────────────────────────────────────────────────────────
-   Popcorn — eat a kernel at a time, with a synthesized crunch (no
-   audio file to fetch — a couple of filtered noise bursts read as a
-   convincing bite without needing a network round-trip).
-─────────────────────────────────────────────────────────── */
-let audioCtx = null;
-function ensureAudio(){
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-function playCrunch(){
-  const ctx = ensureAudio();
-  const now = ctx.currentTime;
-  const bites = 2 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < bites; i++){
-    const start = now + i * 0.08;
-    const dur = 0.065;
-    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / data.length, 2);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    const band = ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 1700 + Math.random() * 1500;
-    band.Q.value = 0.8;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.4, start);
-    gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
-    src.connect(band).connect(gain).connect(ctx.destination);
-    src.start(start);
-    src.stop(start + dur + 0.01);
-  }
-}
-const eatBtn = document.getElementById('rmEatBtn');
-const eatLabel = document.getElementById('rmEatLabel');
-eatBtn.addEventListener('click', () => {
-  if (!popcornKernels.length){
-    eatLabel.textContent = 'All gone';
-    eatBtn.disabled = true;
-    return;
-  }
-  playCrunch();
-  const k = popcornKernels.pop();
-  popcornGroup.remove(k);
-  if (!popcornKernels.length){
-    eatLabel.textContent = 'All gone';
-    eatBtn.disabled = true;
-  }
-});
 
 /* ───────────────────────────────────────────────────────────
    Resize + render loop
