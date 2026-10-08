@@ -42,15 +42,7 @@
   }
   .lb-tooltip.open{opacity:1;transform:translateY(0);pointer-events:auto}
 
-  .lb-caption{
-    position:fixed;left:50%;top:84px;transform:translate(-50%,-8px);z-index:11;pointer-events:none;
-    text-align:center;opacity:0;transition:opacity .22s,transform .22s;
-  }
-  .lb-caption.show{opacity:1;transform:translate(-50%,0)}
-  .lb-caption-title{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--ink)}
-  .lb-caption-sub{font-size:12.5px;color:var(--ink60);margin-top:2px;font-weight:500}
-
-  .lb-bottom{display:flex;align-items:flex-end;justify-content:center;padding:0 24px 30px;position:relative}
+  .lb-bottom{display:flex;align-items:flex-end;justify-content:center;padding:0 24px 30px;position:relative;margin-top:auto}
 
   .lb-search-wrap{pointer-events:auto;position:relative;width:min(560px,86vw)}
   .lb-search{
@@ -144,11 +136,6 @@
     <button class="lb-info" id="lbInfoBtn" type="button" aria-label="How this works">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></svg>
     </button>
-  </div>
-
-  <div class="lb-caption" id="lbCaption">
-    <div class="lb-caption-title" id="lbCaptionTitle"></div>
-    <div class="lb-caption-sub" id="lbCaptionSub"></div>
   </div>
 
   <div class="lb-bottom">
@@ -330,6 +317,29 @@ const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
 
 const FRAME_W = 1.86, FRAME_H = 1.86;
+/* YouTube thumbnails carry a baked-in logo/watermark in a corner (not
+   something CSS/texture offset alone can fully strip since it's part of
+   the image pixels) — crop in tighter than a plain "cover" fit so the
+   outer margin where that watermark usually sits is trimmed away. */
+const COVER_ZOOM = 1.32;
+const accentColors = SONGS.map(s => new THREE.Color().setHSL(s.mood.hue / 360, 0.65, 0.62));
+
+function applyCoverCrop(tex){
+  const iw = tex.image.width, ih = tex.image.height;
+  if (!iw || !ih) return;
+  const imgAspect = iw / ih, targetAspect = FRAME_W / FRAME_H;
+  let rx = 1, ry = 1;
+  if (imgAspect > targetAspect){ rx = targetAspect / imgAspect; } else { ry = imgAspect / targetAspect; }
+  rx /= COVER_ZOOM; ry /= COVER_ZOOM;
+  tex.repeat.set(rx, ry);
+  tex.offset.set((1 - rx) / 2, (1 - ry) / 2);
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+}
+
+/* wait for the display/body webfonts so the canvas-drawn plaques don't
+   render in a fallback font and then never update */
+await document.fonts.ready.catch(() => {});
 
 SONGS.forEach((song, i) => {
   const x = (i - (N - 1) / 2) * SPACING;
@@ -340,12 +350,13 @@ SONGS.forEach((song, i) => {
   group.userData.song = song;
 
   /* outer frame (thin dark border) */
-  const border = new THREE.Mesh(
-    new THREE.BoxGeometry(FRAME_W + 0.16, FRAME_H + 0.16, 0.08),
-    new THREE.MeshStandardMaterial({ color: 0x242220, roughness: 0.5, metalness: 0.15 })
-  );
+  const borderMat = new THREE.MeshStandardMaterial({
+    color: 0x242220, roughness: 0.5, metalness: 0.15, emissive: accentColors[i], emissiveIntensity: 0,
+  });
+  const border = new THREE.Mesh(new THREE.BoxGeometry(FRAME_W + 0.16, FRAME_H + 0.16, 0.08), borderMat);
   border.castShadow = true;
   group.add(border);
+  group.userData.borderMat = borderMat;
 
   /* mat board */
   const mat = new THREE.Mesh(
@@ -355,7 +366,8 @@ SONGS.forEach((song, i) => {
   mat.position.z = 0.042;
   group.add(mat);
 
-  /* artwork (loaded async; falls back gracefully) */
+  /* artwork (loaded async; falls back gracefully; cropped tighter than a
+     plain cover-fit to trim the source thumbnail's corner watermark) */
   const artMat = new THREE.MeshBasicMaterial({ color: 0xE7E3DC });
   const art = new THREE.Mesh(new THREE.PlaneGeometry(FRAME_W, FRAME_H), artMat);
   art.position.z = 0.046;
@@ -364,6 +376,7 @@ SONGS.forEach((song, i) => {
   const applyTexture = (url, isRetry) => {
     loader.load(url, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
+      applyCoverCrop(tex);
       artMat.map = tex; artMat.color.set(0xffffff); artMat.needsUpdate = true;
     }, undefined, () => {
       if (!isRetry) applyTexture(thumbFallback(song.youtubeId), true);
@@ -371,22 +384,36 @@ SONGS.forEach((song, i) => {
   };
   applyTexture(thumb(song.youtubeId), false);
 
-  /* small brass-style plaque */
+  /* plaque — the single place a song's title/artist appears on the
+     frame; matches the site's own type (Space Grotesk/Inter), not a
+     mismatched serif, and auto-fits long titles instead of overflowing */
+  const PW = 896, PH = 168;
   const plaqueCanvas = document.createElement('canvas');
-  plaqueCanvas.width = 512; plaqueCanvas.height = 96;
+  plaqueCanvas.width = PW; plaqueCanvas.height = PH;
   const pctx = plaqueCanvas.getContext('2d');
-  pctx.fillStyle = '#F2EFE8'; pctx.fillRect(0, 0, 512, 96);
-  pctx.fillStyle = '#242220'; pctx.font = '600 40px Georgia, serif'; pctx.textAlign = 'center';
-  pctx.fillText(song.title, 256, 44);
-  pctx.font = '400 28px Georgia, serif'; pctx.fillStyle = '#6b665d';
-  pctx.fillText(`${song.artist} · ${song.year}`, 256, 78);
+  pctx.fillStyle = '#F4F2EE'; pctx.fillRect(0, 0, PW, PH);
+  pctx.textAlign = 'center'; pctx.textBaseline = 'alphabetic';
+
+  let titleSize = 46;
+  pctx.font = `600 ${titleSize}px 'Space Grotesk', ui-sans-serif, system-ui, sans-serif`;
+  while (pctx.measureText(song.title).width > PW - 64 && titleSize > 26){
+    titleSize -= 2;
+    pctx.font = `600 ${titleSize}px 'Space Grotesk', ui-sans-serif, system-ui, sans-serif`;
+  }
+  pctx.fillStyle = '#1B1A18';
+  pctx.fillText(song.title, PW / 2, 78);
+
+  pctx.font = `500 30px 'Inter', ui-sans-serif, system-ui, sans-serif`;
+  pctx.fillStyle = '#817B70';
+  pctx.fillText(`${song.artist} · ${song.year}`, PW / 2, 128);
+
   const plaqueTex = new THREE.CanvasTexture(plaqueCanvas);
   plaqueTex.colorSpace = THREE.SRGBColorSpace;
   const plaque = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.15, 0.216),
+    new THREE.PlaneGeometry(1.15, 1.15 * PH / PW),
     new THREE.MeshBasicMaterial({ map: plaqueTex, transparent: true })
   );
-  plaque.position.set(0, -(FRAME_H / 2 + 0.26), 0.045);
+  plaque.position.set(0, -(FRAME_H / 2 + 0.24), 0.045);
   group.add(plaque);
 
   /* invisible larger hit target — easier to click than the exact frame edge */
@@ -416,14 +443,6 @@ SONGS.forEach((song, i) => {
 let currentIndex = Math.floor((N - 1) / 2);
 let tween = null;
 
-function setCaption(i){
-  const s = SONGS[i];
-  document.getElementById('lbCaptionTitle').textContent = s.title;
-  document.getElementById('lbCaptionSub').textContent = `${s.artist} · ${s.year}`;
-}
-function showCaption(){ document.getElementById('lbCaption').classList.add('show'); }
-function hideCaption(){ document.getElementById('lbCaption').classList.remove('show'); }
-
 function tweenTo(targetX, targetZ, duration){
   if (tween) cancelAnimationFrame(tween.raf);
   const startX = controls.target.x, startCamX = camera.position.x;
@@ -447,7 +466,6 @@ function tweenTo(targetX, targetZ, duration){
 function goToIndex(i){
   currentIndex = Math.max(0, Math.min(N - 1, i));
   tweenTo(frames[currentIndex].position.x, undefined, 650);
-  setCaption(currentIndex); showCaption();
   updateProgress(); updateStepButtons();
 }
 
@@ -456,7 +474,7 @@ document.getElementById('lbNext').addEventListener('click', () => goToIndex(curr
 document.getElementById('lbHome').addEventListener('click', () => {
   currentIndex = Math.floor((N - 1) / 2);
   tweenTo(0, 7.4, 650);
-  hideCaption(); updateProgress(); updateStepButtons();
+  updateProgress(); updateStepButtons();
 });
 
 const INIT_Z = 7.4;
@@ -499,9 +517,16 @@ function pickFrame(e){
 renderer.domElement.addEventListener('pointermove', (e) => {
   const idx = pickFrame(e);
   if (idx !== hoveredIndex){
+    if (hoveredIndex >= 0){
+      frames[hoveredIndex].userData.borderMat.emissiveIntensity = 0;
+      frames[hoveredIndex].scale.setScalar(1);
+    }
     hoveredIndex = idx;
+    if (idx >= 0){
+      frames[idx].userData.borderMat.emissiveIntensity = 0.45;
+      frames[idx].scale.setScalar(1.025);
+    }
     renderer.domElement.style.cursor = idx >= 0 ? 'pointer' : 'grab';
-    if (idx >= 0){ setCaption(idx); showCaption(); } else if (!dragging) hideCaption();
   }
 });
 
