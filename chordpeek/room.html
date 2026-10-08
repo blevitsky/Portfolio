@@ -393,6 +393,21 @@ rightWall.rotation.y = -Math.PI / 2;
 rightWall.position.set(9, 4, 0);
 glScene.add(rightWall);
 
+/* ceiling cove lighting — a recessed LED strip where the side walls
+   meet the ceiling, the detail that makes a real home theater read as
+   a home theater rather than a plain dark room */
+const coveMat = new THREE.MeshBasicMaterial({ color: accent3D });
+[-8.85, 8.85].forEach(x => {
+  const cove = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 26), coveMat);
+  cove.position.set(x, 8.1, 0);
+  glScene.add(cove);
+  for (let i = -1; i <= 1; i++){
+    const cl = new THREE.PointLight(accent3D, 0.6, 7, 2);
+    cl.position.set(x - (x > 0 ? 1 : -1) * 0.5, 7.9, i * 8);
+    glScene.add(cl);
+  }
+});
+
 const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20, 30), wallMat);
 ceiling.rotation.x = Math.PI / 2;
 ceiling.position.set(0, 8.4, 0);
@@ -405,12 +420,17 @@ floor.receiveShadow = true;
 glScene.add(floor);
 
 /* ───────────────────────────────────────────────────────────
-   Seats — simple, abstract rows facing the screen
+   Seats — real home-theater recliners: wine-leather upholstery with
+   a sheen (not flat matte), a glowing LED strip backlighting the
+   base of every seat, and a lit cupholder in the armrest — the same
+   under-glow / cove-lighting language real home theaters use, tinted
+   to this song's mood color instead of a fixed blue.
 ─────────────────────────────────────────────────────────── */
+const ledMat = new THREE.MeshBasicMaterial({ color: accent3D });
 function seat(x, z, lift){
   const g = new THREE.Group();
   g.position.set(x, lift, z);
-  const seatMat = new THREE.MeshStandardMaterial({ color: 0x1a1216, roughness: 0.75 });
+  const seatMat = new THREE.MeshStandardMaterial({ color: 0x3a1016, roughness: 0.38, metalness: 0.06 });
   const pad = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.12, 0.56), seatMat);
   pad.position.y = 0.46;
   const back = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.72, 0.1), seatMat);
@@ -421,6 +441,21 @@ function seat(x, z, lift){
   const pipe = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.06), new THREE.MeshStandardMaterial({ color: 0x0c0a0b }));
   pipe.position.set(0, 0.2, 0.26);
   [pad, back, armL, armR, pipe].forEach(m => { m.castShadow = true; g.add(m); });
+
+  /* under-seat LED strip — a thin glowing bar tucked beneath the base,
+     the way a real recliner's accent lighting washes the floor */
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.02, 0.1), ledMat);
+  strip.position.set(0, 0.07, 0.24);
+  g.add(strip);
+  const stripLight = new THREE.PointLight(accent3D, 0.5, 1.4, 2.2);
+  stripLight.position.set(0, 0.1, 0.24);
+  g.add(stripLight);
+
+  /* lit cupholder in the right armrest */
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 14), ledMat);
+  cup.position.set(0.33, 0.78, 0.12);
+  g.add(cup);
+
   glScene.add(g);
 }
 /* a few other patrons, scattered through the rows in front of the seat
@@ -461,20 +496,21 @@ ROW_Z.forEach((z, ri) => {
   }
 });
 
-/* faint aisle lights, mood-tinted, leading toward the screen */
-for (let i = 0; i < 5; i++){
-  const t = i / 4;
-  const z = 4 - t * 9;
-  [-3.6, 3.6].forEach(side => {
-    const dot = new THREE.Mesh(new THREE.CircleGeometry(0.05, 10), new THREE.MeshBasicMaterial({ color: aisleColor }));
-    dot.rotation.x = -Math.PI / 2;
-    dot.position.set(side, 0.02, z);
-    glScene.add(dot);
-    const pl = new THREE.PointLight(aisleColor, 0.35, 2, 2);
-    pl.position.set(side, 0.15, z);
+/* aisle LED strips — continuous glowing runs along the floor on both
+   sides, mood-tinted, the way real theater-room carpet lighting leads
+   your eye toward the screen rather than a scatter of dots */
+[-3.6, 3.6].forEach(side => {
+  const run = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.015, 9.6), new THREE.MeshBasicMaterial({ color: aisleColor }));
+  run.position.set(side, 0.015, -0.5);
+  glScene.add(run);
+  for (let i = 0; i < 5; i++){
+    const t = i / 4;
+    const z = 4 - t * 9;
+    const pl = new THREE.PointLight(aisleColor, 0.3, 2, 2);
+    pl.position.set(side, 0.1, z);
     glScene.add(pl);
-  });
-}
+  }
+});
 
 /* ───────────────────────────────────────────────────────────
    Camera entrance — start standing at the back of the theater,
