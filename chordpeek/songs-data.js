@@ -1,208 +1,84 @@
-/* Shared song data — bare chord progressions only, no lyrics, no note-for-note
-   tab. Used by both prototype.html (the search launcher) and room.html (the
-   song room). Keeping this in one file means the two pages can never drift.
-   `story` is a short, factual bit of history/trivia about the song — never
-   lyrics — shown in the room's "About this song" card. */
-const SONGS = [
-  { title: "Let It Be", artist: "The Beatles", key: "C", bpm: 72, capo: 0, year: 1970, genre: "Rock",
-    story: "Paul McCartney said the whole song came to him in a dream about his late mother, Mary — the “Mother Mary” the lyric talks to.",
-    sections: [
-      { label: "Intro",  chords: ["C","G","Am","F"] },
-      { label: "Verse",  chords: ["C","G","Am","F","C","G","F","C"] },
-      { label: "Chorus", chords: ["Am","G","F","C","G","F","C"] },
-    ]},
-  { title: "Hey Jude", artist: "The Beatles", key: "F", bpm: 72, capo: 0, year: 1968, genre: "Rock",
-    story: "Paul wrote it to comfort John Lennon's son Julian during his parents' divorce — the “Jude” started out as “Jules.”",
-    sections: [
-      { label: "Verse",       chords: ["F","C7","Bb","F"] },
-      { label: "Bridge",      chords: ["Bb","F","C7","F"] },
-      { label: "Outro (na na na)", chords: ["F","Bb","C7","F","Bb","C7","F"] },
-    ]},
-  { title: "Free Fallin'", artist: "Tom Petty", key: "D", bpm: 95, capo: 0, year: 1989, genre: "Rock",
-    story: "Tom Petty and Jeff Lynne wrote it in a single night, dropping in real LA landmarks like Ventura Boulevard and Mulholland.",
-    sections: [
-      { label: "Verse",  chords: ["D","A","Bm","G"] },
-      { label: "Chorus", chords: ["D","A","Bm","G"] },
-    ]},
-  { title: "Ho Hey", artist: "The Lumineers", key: "C", bpm: 78, capo: 0, year: 2012, genre: "Folk",
-    story: "The Lumineers' breakout single was built around a single chant and a floor-stomp beat, recorded almost entirely live.",
-    sections: [
-      { label: "Verse",  chords: ["C","F","Am"] },
-      { label: "Chorus", chords: ["C","F","Am","G"] },
-    ]},
-  { title: "Chasing Cars", artist: "Snow Patrol", key: "A", bpm: 104, capo: 0, year: 2006, genre: "Alt Rock",
-    story: "Snow Patrol's biggest hit grew out of a single chord loop Gary Lightbody looped for hours before any lyrics showed up.",
-    sections: [
-      { label: "Verse",  chords: ["A","E","F#m","D"] },
-      { label: "Chorus", chords: ["A","E","F#m","D"] },
-    ]},
-  { title: "House of the Rising Sun", artist: "Traditional / The Animals", key: "Am", bpm: 115, capo: 0, year: 1964, genre: "Folk Rock",
-    story: "A centuries-old folk song about a New Orleans house of ruin — The Animals' 1964 electric version made it a #1 hit and one of rock's first true epics.",
-    sections: [
-      { label: "Verse (simplified)", chords: ["Am","C","D","F","Am","C","E","E"] },
-    ]},
-  { title: "Ring of Fire", artist: "Johnny Cash", key: "G", bpm: 148, capo: 0, year: 1963, genre: "Country",
-    story: "Co-written by June Carter about falling for Johnny Cash; the mariachi horns were added almost as a joke and became iconic.",
-    sections: [
-      { label: "Verse",  chords: ["G","C","G"] },
-      { label: "Chorus", chords: ["G","C","D","G"] },
-    ]},
-  { title: "Blowin' in the Wind", artist: "Bob Dylan", key: "D", bpm: 105, capo: 0, year: 1963, genre: "Folk",
-    story: "Bob Dylan reportedly wrote it in about ten minutes, turning an old spiritual melody into the defining protest song of its era.",
-    sections: [
-      { label: "Verse",  chords: ["D","G","D","A"] },
-      { label: "Chorus", chords: ["D","G","D","A","D"] },
-    ]},
-  { title: "Lean on Me", artist: "Bill Withers", key: "C", bpm: 128, capo: 0, year: 1972, genre: "Soul",
-    story: "Bill Withers wrote it on his first electric piano, inspired by the tight-knit community he grew up in back in West Virginia.",
-    sections: [
-      { label: "Verse",  chords: ["C","F","C","G"] },
-      { label: "Chorus", chords: ["C","F","G","C"] },
-    ]},
-  { title: "All of Me", artist: "John Legend", key: "G (simplified)", bpm: 63, capo: 0, year: 2013, genre: "Pop",
-    story: "John Legend wrote it for his now-wife Chrissy Teigen; it became his first #1 hit on the Billboard Hot 100.",
-    sections: [
-      { label: "Verse",  chords: ["Em","C","G","D"] },
-      { label: "Chorus", chords: ["Em","C","G","D"] },
-    ]},
-  { title: "Thinking Out Loud", artist: "Ed Sheeran", key: "D", bpm: 79, capo: 0, year: 2014, genre: "Pop",
-    story: "Ed Sheeran wrote the whole thing in one sitting and has said he still can't fully explain how it came together that fast.",
-    sections: [
-      { label: "Verse",  chords: ["D","F#m","G","A"] },
-      { label: "Chorus", chords: ["D","G","Bm","A"] },
-    ]},
-  { title: "Fast Car", artist: "Tracy Chapman", key: "C (simplified)", bpm: 103, capo: 0, year: 1988, genre: "Folk Rock",
-    story: "Tracy Chapman's breakout moment came when she played this, largely unplanned, at the 1988 Nelson Mandela tribute concert, watched worldwide.",
-    sections: [
-      { label: "Verse",  chords: ["C","G","Am","F"] },
-      { label: "Chorus", chords: ["C","G","Am","F"] },
-    ]},
-  { title: "Dust in the Wind", artist: "Kansas", key: "C (simplified)", bpm: 78, capo: 0, year: 1977, genre: "Rock",
-    story: "Kerry Livgren wrote it after his wife caught him practicing a fingerpicking exercise and told him it was good enough to be a real song.",
-    sections: [
-      { label: "Verse",  chords: ["C","D","Am","G"] },
-      { label: "Chorus", chords: ["C","D","Am","G"] },
-    ]},
-  { title: "Tears in Heaven", artist: "Eric Clapton", key: "A (simplified)", bpm: 86, capo: 0, year: 1992, genre: "Rock Ballad",
-    story: "Eric Clapton wrote it, with Will Jennings, after the death of his four-year-old son Conor.",
-    sections: [
-      { label: "Verse",  chords: ["A","E","F#m","D"] },
-      { label: "Chorus", chords: ["A","E","F#m","D","E"] },
-    ]},
-  { title: "Budapest", artist: "George Ezra", key: "C (simplified)", bpm: 130, capo: 0, year: 2014, genre: "Pop",
-    story: "George Ezra wrote it on a shoestring European trip — despite the title, he hadn't actually been to Budapest yet when he wrote it.",
-    sections: [
-      { label: "Verse",  chords: ["C","F","Am","G"] },
-      { label: "Chorus", chords: ["C","F","Am","G"] },
-    ]},
-  { title: "I'm a Believer", artist: "The Monkees", key: "G", bpm: 130, capo: 0, year: 1966, genre: "Pop Rock",
-    story: "Written by Neil Diamond and made famous by The Monkees, it became one of the best-selling singles of the entire 1960s.",
-    sections: [
-      { label: "Verse",  chords: ["G","Em","C","D"] },
-      { label: "Chorus", chords: ["G","Em","C","D"] },
-    ]},
-  { title: "Knockin' on Heaven's Door", artist: "Bob Dylan", key: "G", bpm: 70, capo: 0, year: 1973, genre: "Folk Rock",
-    story: "Bob Dylan wrote it for the film “Pat Garrett and Billy the Kid,” in which he also played a small supporting role.",
-    sections: [
-      { label: "Verse",  chords: ["G","D","Am","G","D","C"] },
-      { label: "Chorus", chords: ["G","D","Am","G","D","C"] },
-    ]},
-  { title: "Three Little Birds", artist: "Bob Marley", key: "A", bpm: 75, capo: 0, year: 1977, genre: "Reggae",
-    story: "Bob Marley reportedly wrote it about three birds that used to sit outside his studio window at Tuff Gong in Kingston.",
-    sections: [
-      { label: "Verse",  chords: ["A","D","E","A"] },
-      { label: "Chorus", chords: ["A","D","E","A"] },
-    ]},
-  { title: "I'm Yours", artist: "Jason Mraz", key: "G", bpm: 140, capo: 0, year: 2008, genre: "Pop",
-    story: "Jason Mraz sat on the song for years, reworking it, before it finally spent a record-breaking stretch on the Billboard Hot 100.",
-    sections: [
-      { label: "Verse",  chords: ["G","D","Em","C"] },
-      { label: "Chorus", chords: ["G","D","Em","C"] },
-    ]},
-  { title: "Stand By Me", artist: "Ben E. King", key: "C", bpm: 118, capo: 0, year: 1961, genre: "Soul",
-    story: "Ben E. King drew on an old gospel tune for the idea, and first offered the song to The Drifters, who turned it down.",
-    sections: [
-      { label: "Verse",  chords: ["C","Am","F","G"] },
-      { label: "Chorus", chords: ["C","Am","F","G"] },
-    ]},
-  { title: "Zombie", artist: "The Cranberries", key: "Em", bpm: 85, capo: 0, year: 1994, genre: "Alt Rock",
-    story: "Dolores O'Riordan wrote it in response to the 1993 IRA bombing in Warrington, England, which killed two children.",
-    sections: [
-      { label: "Verse",  chords: ["Em","C","G","D"] },
-      { label: "Chorus", chords: ["Em","C","G","D","Em","C","G","D"] },
-    ]},
-  { title: "Riptide", artist: "Vance Joy", key: "Am", bpm: 102, capo: 0, year: 2013, genre: "Indie Folk",
-    story: "Vance Joy wrote it on a cheap ukulele; the odd bridge lyric name-checking Elvis and King Kong came almost as an afterthought.",
-    sections: [
-      { label: "Verse",  chords: ["Am","G","C","Am","G","C"] },
-      { label: "Chorus", chords: ["F","C","G","Am"] },
-    ]},
-  { title: "Take Me Home, Country Roads", artist: "John Denver", key: "G", bpm: 114, capo: 0, year: 1971, genre: "Country Folk",
-    story: "Written about a West Virginia drive the songwriters hadn't actually taken yet — John Denver added the chorus the night before recording.",
-    sections: [
-      { label: "Verse",  chords: ["G","Em","C","G","D"] },
-      { label: "Chorus", chords: ["G","Em","C","G","D","G"] },
-    ]},
-  { title: "Wagon Wheel", artist: "Old Crow Medicine Show", key: "G", bpm: 140, capo: 0, year: 2004, genre: "Folk Country",
-    story: "Built from an unfinished Bob Dylan chorus sketch from his “Pat Garrett” sessions; Ketch Secor wrote the verses around it decades later.",
-    sections: [
-      { label: "Intro",  chords: ["G","D","Em","C"] },
-      { label: "Verse",  chords: ["G","D","Em","C"] },
-      { label: "Chorus", chords: ["G","D","Em","C"] },
-    ]},
-  { title: "Brown Eyed Girl", artist: "Van Morrison", key: "G", bpm: 150, capo: 0, year: 1967, genre: "Rock Pop",
-    story: "Van Morrison's biggest hit went through several working titles — including “Brown Skinned Girl” — before landing on the final one.",
-    sections: [
-      { label: "Verse",  chords: ["G","C","G","D"] },
-      { label: "Chorus", chords: ["C","D","G","Em","C","D","G"] },
-    ]},
-  { title: "Sweet Home Alabama", artist: "Lynyrd Skynyrd", key: "D", bpm: 98, capo: 0, year: 1974, genre: "Southern Rock",
-    story: "Written partly as a response to Neil Young's “Southern Man” and “Alabama” — Young later said he actually liked the song.",
-    sections: [
-      { label: "Riff/Verse", chords: ["D","C","G","D","C","G"] },
-      { label: "Chorus",     chords: ["D","C","G","D"] },
-    ]},
-  { title: "Hallelujah", artist: "Leonard Cohen", key: "C", bpm: 60, capo: 0, year: 1984, genre: "Folk Rock",
-    story: "Leonard Cohen reportedly wrote around 80 verses for this song before settling on the handful most people know today.",
-    sections: [
-      { label: "Verse",  chords: ["C","Am","C","Am","F","G","C","G"] },
-      { label: "Bridge", chords: ["F","G","Am","F","G","E"] },
-    ]},
-  { title: "Imagine", artist: "John Lennon", key: "C", bpm: 76, capo: 0, year: 1971, genre: "Rock",
-    story: "John Lennon said the lyrics were partly inspired by a book of instructional poems written by Yoko Ono.",
-    sections: [
-      { label: "Verse",  chords: ["C","Cmaj7","F","C","Cmaj7","F"] },
-      { label: "Chorus", chords: ["F","G","Am","F","C","G","C"] },
-    ]},
-  { title: "Wonderwall", artist: "Oasis", key: "Em (capo 2)", bpm: 87, capo: 2, year: 1995, genre: "Britpop",
-    story: "Noel Gallagher has said the title came from an old George Harrison album title, not — as often assumed — about a specific person.",
-    sections: [
-      { label: "Verse",  chords: ["Em7","G","D","A7sus4"] },
-      { label: "Chorus", chords: ["C","D6","G","G"] },
-    ]},
-  { title: "No Woman, No Cry", artist: "Bob Marley", key: "C", bpm: 78, capo: 0, year: 1974, genre: "Reggae",
-    story: "Bob Marley credited the song to his friend Vincent Ford, who ran a soup kitchen in Trenchtown, so the royalties would support it.",
-    sections: [
-      { label: "Verse",  chords: ["C","G","Am","F","C","G","F"] },
-      { label: "Chorus", chords: ["C","G","Am","F","C","G","F","C"] },
-    ]},
-  { title: "A Horse with No Name", artist: "America", key: "Em", bpm: 122, capo: 0, year: 1971, genre: "Folk Rock",
-    story: "Written by then-19-year-old Dewey Bunnell, inspired by memories of the desert landscapes from his childhood in the American Southwest.",
-    sections: [
-      { label: "Verse (simplified)", chords: ["Em","D","Em","D"] },
-    ]},
-  { title: "Perfect", artist: "Ed Sheeran", key: "G", bpm: 95, capo: 0, year: 2017, genre: "Pop",
-    story: "Ed Sheeran wrote it about his now-wife Cherry Seaborn and has called it one of the most personal songs he's ever released.",
-    sections: [
-      { label: "Verse",  chords: ["G","Em","C","D"] },
-      { label: "Chorus", chords: ["G","Em","C","D","Em","C","G","D"] },
-    ]},
-  { title: "Someone Like You", artist: "Adele", key: "A", bpm: 67, capo: 0, year: 2011, genre: "Pop Soul",
-    story: "Adele co-wrote it with Dan Wilson in a single afternoon session, inspired by a breakup she was still very much in the middle of.",
-    sections: [
-      { label: "Verse",  chords: ["A","E","F#m","D"] },
-      { label: "Chorus", chords: ["A","E","F#m","D"] },
-    ]},
-];
+/* Shared song data for the rebuilt ChordPeek: no chords, no synthesized
+   audio — the real recording plays via an embedded YouTube player, so this
+   file only needs what the room actually shows: the track's identity, a
+   short factual story, and a curated mood that drives the room's lighting.
+   One file, read by both prototype.html (the browse/search launcher) and
+   room.html (the song room), so the two pages can never drift apart.
 
-if (typeof window !== 'undefined') window.SONGS = SONGS;
+   youtubeId: the video ID (the part after watch?v=) for the track's best
+   available official upload. Swap any of these in one line if a video ever
+   gets pulled or region-locked.
+
+   mood: a hand-picked { hue, name } pair (not computed from key/tempo,
+   since neither exists anymore) that sets the room's accent color and
+   ambient label — curated per song rather than templated, the same way a
+   real editor would pick a palette for a magazine spread rather than
+   running a formula. */
+const SONGS = [
+  {
+    title: "Blurry", artist: "Puddle of Mudd", album: "Come Clean", year: 2001, genre: "Post-Grunge",
+    youtubeId: "xJJsoquu70o",
+    mood: { hue: 205, name: "Overcast & aching" },
+    story: "Wes Scantlin wrote “Blurry” about losing contact with his infant son during a custody dispute. Fred Durst discovered the band and got them signed to Interscope; the song spent three weeks at #1 on Billboard's Mainstream Rock chart and became the defining post-grunge single of 2001.",
+  },
+  {
+    title: "Fine Again", artist: "Seether", album: "Disclaimer II", year: 2002, genre: "Alt-Metal",
+    youtubeId: "y9MVRhBfzz8",
+    mood: { hue: 350, name: "Raw & searching" },
+    story: "Frontman Shaun Morgan wrote “Fine Again” about pulling himself out of addiction. It became the South African band's breakthrough U.S. rock-radio hit and the song most credited with putting Seether on the map stateside.",
+  },
+  {
+    title: "Adam's Song", artist: "blink-182", album: "Enema of the State", year: 1999, genre: "Pop Punk",
+    youtubeId: "Zbxntcj48BY",
+    mood: { hue: 220, name: "Quiet & heavy" },
+    story: "Mark Hoppus wrote the lyrics after reading a teenage fan's suicide note printed in a magazine, while blink-182 was on a lonely stretch of tour. It's the band's most serious song by far — a pop-punk record that opened up a real conversation about teen depression.",
+  },
+  {
+    title: "Hemorrhage (In My Hands)", artist: "Fuel", album: "Something Like Human", year: 2000, genre: "Post-Grunge",
+    youtubeId: "ZbHfgXJKn1Y",
+    mood: { hue: 10, name: "Fragile & urgent" },
+    story: "Written about watching someone you love fall apart and being unable to stop it, “Hemorrhage” became Fuel's biggest hit, spending nine weeks at #1 on the Mainstream Rock chart — still one of the most-played rock-radio songs of the early 2000s.",
+  },
+  {
+    title: "If You Could Only See", artist: "Tonic", album: "Lemon Parade", year: 1996, genre: "Alt Rock",
+    youtubeId: "Sfg6-4mBs6Y",
+    mood: { hue: 28, name: "Golden & defiant" },
+    story: "Emerson Hart wrote it about his real relationship with an older, still-married woman — the “forbidden love” in the lyrics was literal, not metaphor. It became Tonic's signature song and a radio-rock staple of the late '90s.",
+  },
+  {
+    title: "Here Without You", artist: "3 Doors Down", album: "Away from the Sun", year: 2002, genre: "Post-Grunge",
+    youtubeId: "kPBzTxZQG5Q",
+    mood: { hue: 235, name: "Longing & vast" },
+    story: "Brad Arnold wrote it about missing his girlfriend while 3 Doors Down was constantly on tour. It spent 30 weeks on the Billboard Hot 100 and became one of the best-selling rock singles of the decade — its official video has passed one billion YouTube views.",
+  },
+  {
+    title: "Spin", artist: "Lifehouse", album: "Stanley Climbfall (Expanded Edition)", year: 2002, genre: "Alt Rock",
+    youtubeId: "LWnIEHVoiXg",
+    mood: { hue: 265, name: "Restless & searching" },
+    story: "Jason Wade wrote “Spin” about the disorientation of sudden fame after Lifehouse's debut blew up — feeling like the world was moving faster than he could keep up with. It became a defining deep cut from the Stanley Climbfall era.",
+  },
+  {
+    title: "45", artist: "Shinedown", album: "Leave a Whisper", year: 2003, genre: "Alt-Metal",
+    youtubeId: "MLeIyy2ipps",
+    mood: { hue: 355, name: "Tense & cornered" },
+    story: "Brent Smith has said “45” uses the imagery of a loaded gun as a metaphor for being pushed to your absolute limit by a toxic relationship — not a literal account. It became Shinedown's breakout single and a mainstay of 2000s rock radio.",
+  },
+  {
+    title: "Waste", artist: "Phish", album: "Billy Breathes", year: 1996, genre: "Jam / Alt Rock",
+    youtubeId: "qVVFDXWBtis",
+    mood: { hue: 150, name: "Tender & unhurried" },
+    story: "One of the gentlest songs in the Phish catalog — Trey Anastasio has described “Waste” as being about staying present with someone rather than wasting the time you have together. Billy Breathes marked a deliberate shift toward shorter, more intimate songwriting for the band.",
+  },
+  {
+    title: "Don't Go Away", artist: "Oasis", album: "Be Here Now", year: 1997, genre: "Britpop",
+    youtubeId: "FU6yzzESX8Y",
+    mood: { hue: 30, name: "Wistful & grand" },
+    story: "Noel Gallagher wrote “Don't Go Away” while his father was undergoing cancer treatment. Tucked into the maximalist Be Here Now, it's one of the most quietly personal songs Oasis ever released.",
+  },
+  {
+    title: "Stairway to Heaven", artist: "Led Zeppelin", album: "Led Zeppelin IV", year: 1971, genre: "Classic Rock",
+    youtubeId: "QkF3oxziUI4",
+    mood: { hue: 42, name: "Mythic & ascending" },
+    story: "Jimmy Page and Robert Plant wrote “Stairway to Heaven” at a remote Welsh cottage called Bron-Yr-Aur, building the song from a slow acoustic figure into one of rock's most famous electric climaxes. Never released as a single, it became the most-requested song in FM radio history anyway.",
+  },
+];
